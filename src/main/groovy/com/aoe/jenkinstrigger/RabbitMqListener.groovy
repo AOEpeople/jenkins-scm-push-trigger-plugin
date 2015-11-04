@@ -9,7 +9,10 @@ import java.util.concurrent.CopyOnWriteArraySet
 import java.util.logging.Logger
 
 /**
- * Created by kAyCeE on 03.11.15.
+ * Integrates with the RabbitMQ Consumer Plugin. On message arrivals it tries to find all triggers
+ * that match the content of the message and invokes them.
+ *
+ * @author Carsten Lenz, AOE
  */
 @Extension
 class RabbitMqListener extends MessageQueueListener {
@@ -19,14 +22,10 @@ class RabbitMqListener extends MessageQueueListener {
     private final Set<PushTriggerRef> triggerRefs = new CopyOnWriteArraySet<>()
 
     @Override
-    String getName() {
-        "Push Trigger"
-    }
+    String getName() { "Push Trigger" }
 
     @Override
-    String getAppId() {
-        "push-trigger"
-    }
+    String getAppId() { "push-trigger" }
 
     void addTrigger(PushTriggerRef triggerRef) {
         triggerRefs.remove(triggerRef)
@@ -39,23 +38,25 @@ class RabbitMqListener extends MessageQueueListener {
 
     @Override
     void onBind(String queueName) {
+        LOGGER.info("Bind to: $queueName")
     }
 
     @Override
     void onUnbind(String queueName) {
+        LOGGER.info("Unbind from: $queueName")
     }
 
     @Override
     void onReceive(String queueName, String contentType, Map<String, Object> headers, byte[] body) {
         def content = new String(body, 'UTF-8')
-        LOGGER.info("Received message: $content")
 
         def matchingTriggers = triggerRefs.findAll { it.matches(content) }
 
         def allProjects = Jenkins.getInstance().getAllItems(Project)
+
         matchingTriggers.each { triggerRef ->
             def job = allProjects.find { it.name == triggerRef.projectName }
-            def trigger = job.getTrigger(PushTrigger) as PushTrigger
+            def trigger = job?.getTrigger(PushTrigger) as PushTrigger
             if (!trigger) {
                 throw new IllegalStateException("Trigger registered but none found on referenced Project??")
             }

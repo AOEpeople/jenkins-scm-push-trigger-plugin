@@ -1,7 +1,5 @@
 package com.aoe.jenkinstrigger
 
-import groovy.transform.EqualsAndHashCode
-import groovy.transform.Immutable
 import hudson.Extension
 import hudson.model.AbstractProject
 import hudson.model.Cause
@@ -21,15 +19,15 @@ import org.kohsuke.stapler.DataBoundConstructor
  */
 class PushTrigger extends Trigger<AbstractProject<?, ?>> {
 
-    final String matchingExpression
+    final String matchExpression
 
     @DataBoundConstructor
-    PushTrigger(String matchingId) {
-        this.matchingExpression = matchingId
+    PushTrigger(String matchExpression) {
+        this.matchExpression = matchExpression
     }
 
     PushTriggerRef getTriggerRef() {
-        new PushTriggerRef(job.name, matchingExpression)
+        new PushTriggerRef(job.name, matchExpression)
     }
 
     @Override
@@ -65,15 +63,15 @@ class PushTrigger extends Trigger<AbstractProject<?, ?>> {
 
 class PushTriggerRef {
     final String projectName
-    final String matchingExpression
+    final String matchExpression
 
-    PushTriggerRef(String projectName, String matchingExpression) {
+    PushTriggerRef(String projectName, String matchExpression) {
         this.projectName = projectName
-        this.matchingExpression = matchingExpression
+        this.matchExpression = matchExpression
     }
 
     boolean matches(String content)  {
-        matchingExpression == content
+        matchExpression == content
     }
 
     boolean equals(o) {
@@ -105,7 +103,7 @@ class PushTriggerBuildCause extends Cause {
 
     @Override
     String getShortDescription() {
-        "Triggered by message to queue $queueName with content '$content'"
+        "Triggered by push-trigger message to queue '$queueName' with content '$content'"
     }
 }
 
