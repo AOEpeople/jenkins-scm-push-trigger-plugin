@@ -6,9 +6,11 @@ import hudson.model.Cause
 import hudson.model.Item
 import hudson.model.Project
 import hudson.model.listeners.ItemListener
+import hudson.triggers.SCMTrigger
 import hudson.triggers.Trigger
 import hudson.triggers.TriggerDescriptor
 import jenkins.model.Jenkins
+import org.apache.log4j.Logger
 import org.jenkinsci.plugins.rabbitmqconsumer.extensions.MessageQueueListener
 import org.kohsuke.stapler.DataBoundConstructor
 
@@ -19,11 +21,15 @@ import org.kohsuke.stapler.DataBoundConstructor
  */
 class PushTrigger extends Trigger<AbstractProject<?, ?>> {
 
+    private static Logger LOGGER = Logger.getLogger(PushTrigger.class.getName())
+
     final String matchExpression
+    final boolean useScmTrigger
 
     @DataBoundConstructor
-    PushTrigger(String matchExpression) {
+    PushTrigger(String matchExpression, boolean useScmTrigger) {
         this.matchExpression = matchExpression
+        this.useScmTrigger = useScmTrigger
     }
 
     PushTriggerRef getTriggerRef() {
@@ -43,6 +49,17 @@ class PushTrigger extends Trigger<AbstractProject<?, ?>> {
     }
 
     void scheduleBuild(String queueName, String content) {
+        if (useScmTrigger) {
+            def trigger = job.getTrigger(SCMTrigger)
+            if (trigger) {
+                trigger.run()
+                return
+            }
+            else {
+                LOGGER.warn("No SCM Trigger found although 'Use SCM Trigger' configured. Falling back to simply scheduling a build")
+            }
+        }
+
         job.scheduleBuild2(0, new PushTriggerBuildCause(queueName, content))
     }
 

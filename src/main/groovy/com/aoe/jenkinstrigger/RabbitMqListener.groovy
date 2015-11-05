@@ -48,6 +48,7 @@ class RabbitMqListener extends MessageQueueListener {
 
     @Override
     void onReceive(String queueName, String contentType, Map<String, Object> headers, byte[] body) {
+        LOGGER.warning("Received message")
         def content = new String(body, 'UTF-8')
 
         def matchingTriggers = triggerRefs.findAll { it.matches(content) }

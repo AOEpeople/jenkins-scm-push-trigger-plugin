@@ -1,0 +1,4 @@
+def ctx = context(pathRegexp: /.*src\/main\/resources\/.*groovy/)
+contributor(ctx, {
+    delegatesTo(findClass('org.kohsuke.stapler.jelly.groovy.JellyBuilder'))
+})
