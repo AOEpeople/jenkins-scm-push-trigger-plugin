@@ -1,0 +1,16 @@
+<div>
+    Listens to messages on a configured RabbitMQ queue and (by default) tries to
+    match the content of received messages with all configured Git SCM URLs. If
+    a match is found the trigger is run.
+    <p/>
+    By default if this trigger is run it delegates to the SCM Trigger to allow
+    the SCM Plugin to decide if a build should be scheduled. This allow for things
+    like path restrictions or parameterized builds to work.
+    <p/>
+    You can override the matching by specifiying a custom match expression - this
+    will disable the matching against the Git SCM URLs.
+    <p/>
+    You can also disable the delegation to the SCM Trigger. If you do this then every
+    successful triggering will directly schedule a build. This breaks things like path
+    restrictions and parameterized builds.
+</div>

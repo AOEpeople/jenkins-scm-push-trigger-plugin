@@ -6,7 +6,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'org.jenkins-ci.tools:gradle-jpi-plugin:0.13.0'
+        classpath 'org.jenkins-ci.tools:gradle-jpi-plugin:0.14.0'
     }
 }
 
@@ -14,16 +14,18 @@ apply plugin: 'groovy'
 apply plugin: 'org.jenkins-ci.jpi'
 
 description = 'Jenkins plugin to leverage job-dsl-core to programmatic create jobs from inside Jenkins.'
-group = 'hudson.plugin.jenkinstrigger'
+group = 'com.aoe.jenkins'
+version = '1.0.0'
 
 // keep the generated sources outside of the build directory, see http://stackoverflow.com/a/21003914/1271460
 def generatedSourcesDir = 'generated'
 
 jenkinsPlugin {
-    coreVersion = '1.609'
-    displayName = 'Simple Push Trigger'
+    coreVersion = '1.600'
+    displayName = 'SCM Push Trigger'
     //url = 'https://wiki.jenkins-ci.org/display/JENKINS/Job+DSL+Plugin'
     //gitHubUrl = 'https://github.com/jenkinsci/job-dsl-plugin'
+    fileExtension = 'jpi'
     localizerOutputDir = "$generatedSourcesDir/localizer"
     developers {
         developer {
@@ -34,8 +36,13 @@ jenkinsPlugin {
     }
 }
 
+repositories {
+    maven { url 'https://extranet.aoe.com/artifactory/remote-repos' }
+}
+
 clean {
     delete generatedSourcesDir
+    delete 'classes'
 }
 
 test {
@@ -45,5 +52,10 @@ test {
 
 dependencies {
     compile 'org.codehaus.groovy:groovy-all:1.8.9'
-    jenkinsPlugins 'org.jenkins-ci.plugins:rabbitmq-consumer:2.5@jar'
+    jenkinsPlugins 'org.jenkins-ci.plugins:rabbitmq-consumer:2.7@jar'
+    jenkinsPlugins 'org.jenkins-ci.plugins:git:2.4.0@jar'
+
+    // Don't know why but since rabbitmq-consumer 2.5 -> 2.7 this is required
+    optionalJenkinsPlugins 'org.slf4j:slf4j-api:1.7.7'
+    optionalJenkinsPlugins 'org.jenkins-ci.plugins:multiple-scms:0.5@jar'
 }
