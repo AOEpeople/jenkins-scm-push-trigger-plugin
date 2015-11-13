@@ -15,7 +15,7 @@ apply plugin: 'org.jenkins-ci.jpi'
 
 description = 'Jenkins plugin to leverage job-dsl-core to programmatic create jobs from inside Jenkins.'
 group = 'com.aoe.jenkins'
-version = '1.0.0'
+version = '1.0.1-SNAPSHOT'
 
 // keep the generated sources outside of the build directory, see http://stackoverflow.com/a/21003914/1271460
 def generatedSourcesDir = 'generated'
