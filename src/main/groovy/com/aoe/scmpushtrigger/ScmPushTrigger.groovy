@@ -1,4 +1,4 @@
-package com.aoe.jenkinstrigger
+package com.aoe.scmpushtrigger
 
 import hudson.Extension
 import hudson.model.AbstractProject

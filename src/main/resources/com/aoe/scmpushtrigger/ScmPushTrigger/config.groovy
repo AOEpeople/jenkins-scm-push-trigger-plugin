@@ -1,4 +1,4 @@
-package com.aoe.jenkinstrigger.ScmPushTrigger
+package com.aoe.scmpushtrigger.ScmPushTrigger
 
 import lib.FormTagLib
 

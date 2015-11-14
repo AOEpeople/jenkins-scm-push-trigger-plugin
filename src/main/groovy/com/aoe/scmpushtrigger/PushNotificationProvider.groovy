@@ -1,4 +1,4 @@
-package com.aoe.jenkinstrigger
+package com.aoe.scmpushtrigger
 
 /**
  * @author Carsten Lenz, AOE
