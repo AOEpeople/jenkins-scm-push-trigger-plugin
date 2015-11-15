@@ -1,3 +1,5 @@
+== 1.2.0 (NEXT)
+
 == 1.1.0 (2015-11-15)
 - Support for Job DSL
 - Basic documentation
