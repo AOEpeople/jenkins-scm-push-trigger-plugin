@@ -13,9 +13,8 @@ buildscript {
 apply plugin: 'groovy'
 apply plugin: 'org.jenkins-ci.jpi'
 
-description = 'Jenkins plugin to leverage job-dsl-core to programmatic create jobs from inside Jenkins.'
+description = 'Plugin to receive SCM change notifications via RabbitMQ and triggering builds'
 group = 'com.aoe.jenkins'
-version = '1.0.1-SNAPSHOT'
 
 // keep the generated sources outside of the build directory, see http://stackoverflow.com/a/21003914/1271460
 def generatedSourcesDir = 'generated'
@@ -23,9 +22,12 @@ def generatedSourcesDir = 'generated'
 jenkinsPlugin {
     coreVersion = '1.600'
     displayName = 'SCM Push Trigger'
-    //url = 'https://wiki.jenkins-ci.org/display/JENKINS/Job+DSL+Plugin'
-    //gitHubUrl = 'https://github.com/jenkinsci/job-dsl-plugin'
+    //url = ''
+    //gitHubUrl = ''
+    repoUrl = 'https://extranet.aoe.com/artifactory/libs-release-local'
+    snapshotRepoUrl = 'https://extranet.aoe.com/artifactory/libs-snapshot-local'
     fileExtension = 'jpi'
+    configureRepositories = false
     localizerOutputDir = "$generatedSourcesDir/localizer"
     developers {
         developer {
@@ -58,4 +60,20 @@ dependencies {
     // Don't know why but since rabbitmq-consumer 2.5 -> 2.7 this is required
     optionalJenkinsPlugins 'org.slf4j:slf4j-api:1.7.7'
     optionalJenkinsPlugins 'org.jenkins-ci.plugins:multiple-scms:0.5@jar'
+    optionalJenkinsPlugins 'org.jenkins-ci.plugins:job-dsl:1.40@jar'
+    optionalJenkinsPlugins 'org.jenkins-ci.plugins:job-dsl-core:1.40@jar'
+
+    testCompile 'org.spockframework:spock-core:0.7-groovy-1.8'
+    testCompile 'junit:junit-dep:4.10'
+    testCompile 'cglib:cglib-nodep:2.2.2' // used by Spock
+    testCompile 'org.objenesis:objenesis:1.2' // used by Spock
+}
+
+// As long as we don't deploy to jenkins-ci.org we use our auth standards
+gradle.taskGraph.whenReady { taskGraph ->
+    PublishingExtension publishingExtension = project.extensions.getByType(PublishingExtension)
+    publishingExtension.repositories.getByName('jenkins').credentials {
+        username = aoeRepoUsername
+        password = aoeRepoPassword
+    }
 }

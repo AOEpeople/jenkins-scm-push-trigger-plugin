@@ -1,0 +1,85 @@
+= SCM Push Trigger Jenkins Plugin
+
+The plugin receives notifications about SCM changes from an external source and
+delegates to the _Poll SCM_ trigger plugin of a build job. This way the SCM
+trigger can decide if a build is necessary and take things like path
+restrictions into account and can add parameters like changed branch to the
+build.
+
+Currently RabbitMQ is the only supported external source of notifications. 
+
+== Installation
+
+=== Prerequisits
+
+This plugin needs the
+https://wiki.jenkins-ci.org/display/JENKINS/RabbitMQ+Consumer+Plugin[RabbitMQ
+Consumer Plugin].
+
+Install it first, install this one and then configure a queue with the
+`scm-push-trigger` as Application ID.
+
+=== Message Format
+You need to send RabbitMQ messages with the following:
+
+*Properties:* 
+`app_id: scm-push-trigger`
+
+*Content:*
+URL of the Git repo that changed - must be the same URL as the one configured
+in the Git section of your Jenkins job
+
+== Usage 
+
+In your job config choose the *RabbitMQ SCM Push Trigger* in the _Build
+Triggers_ section of your job config. 
+
+If you want the push trigger to delegate to the *Poll SCM* trigger (which
+actually is the reason the plugin was created in the first place) then also
+choose the *Poll SCM* trigger but leave the schedule empty and make sure the
+checkbox _Use SCM trigger_ is checked (which it is by default).
+
+If you disabe _Use SCM trigger_ then every matching message will trigger the
+build directly.
+
+By default the message content is compared to the Git SCM URL to determine if
+this job should be triggered (see Message Format). If you want to react on a
+different message content you can configure a custom String for matching the
+message content in the _Custom match expressions_ text box.
+
+== "Isn't there a RabbitMQ Trigger plugin available?" aka History
+
+Yes. And if it's semantics fit your needs than there is no reason to not use it.
+
+Our usecase was to avoid SCM polling because we use several Jenkins instances
+and together with our code review tool these were polling our internal Git
+repository server to death. 
+
+So the idea was to use Git commit hooks to somehow notify our Jenkins instances
+about a SCM change so they can react to it.
+
+Because of Reasons™ we couldn't just call the HTTP endpoints on our Jenkins
+servers so we took a stab with the _RabbitMQ consumer plugin_ and the _RabbitMQ
+build trigger plugin_. Every Git commit triggers a Git commit hook that places a
+message to RabbitMQ which can then be consumed from Jenkins.
+
+It worked well in most cases but there were problems:
+- the _RabbitMQ build trigger plugin_ expects messages containing the specific
+  build to be triggered and if you have multiple build jobs that should act on a
+  change in a single repo you have to configure the commit hook to send multiple
+  messages - one for each job - for us a big problem
+- If you used the _Poll SCM_ trigger before and configured for example path
+  restrictions in your Git SCM config this won't work anymore
+- If the Git SCM config contained config to trigger a build with the changed
+  branch as a parameter this also won't work anymore
+
+This has let us to look for alternatives. As we like the RabbitMQ triggering in
+general the idea was to find a way to just notify Jenkins to check the SCM only
+when a change actually occured.
+
+This needed two things:
+- a message format containing the repository that changed
+- a listener that runs all SCM triggers of projects using this repository
+
+So: Welcome SCM Push Trigger.
+
