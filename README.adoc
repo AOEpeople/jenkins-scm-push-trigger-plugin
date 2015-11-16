@@ -66,22 +66,26 @@ build trigger plugin_. Every Git commit triggers a Git commit hook that places a
 message to RabbitMQ which can then be consumed from Jenkins.
 
 It worked well in most cases but there were problems:
-- the _RabbitMQ build trigger plugin_ expects messages containing the specific
+
+* the _RabbitMQ build trigger plugin_ expects messages containing the specific
   build to be triggered and if you have multiple build jobs that should act on a
   change in a single repo you have to configure the commit hook to send multiple
   messages - one for each job - for us a big problem
-- If you used the _Poll SCM_ trigger before and configured for example path
-  restrictions in your Git SCM config this won't work anymore
-- If the Git SCM config contained config to trigger a build with the changed
-  branch as a parameter this also won't work anymore
+* It also is just a simple remote build trigger that has no notion of SCMs -
+  that is problematic because:
+** If you used the _Poll SCM_ trigger before and configured for example path
+   restrictions in your Git SCM config this won't work anymore
+** If the Git SCM config contained config to trigger a build with the changed
+   branch as a parameter this also won't work anymore
 
 This has let us to look for alternatives. As we like the RabbitMQ triggering in
 general the idea was to find a way to just notify Jenkins to check the SCM only
 when a change actually occured.
 
 This needed two things:
-- a message format containing the repository that changed
-- a listener that runs all SCM triggers of projects using this repository
+
+* a message format containing the repository that changed
+* a listener that runs all SCM triggers of projects using this repository
 
 So: Welcome SCM Push Trigger.
 
