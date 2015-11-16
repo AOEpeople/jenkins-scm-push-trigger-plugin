@@ -30,7 +30,7 @@ class ScmPushTrigger extends Trigger<AbstractProject<?, ?>> {
     final String matchExpression
     final boolean useScmTrigger
 
-    private volatile ScmPushTriggerRef triggerRef
+    private volatile transient ScmPushTriggerRef triggerRef
 
     @DataBoundConstructor
     ScmPushTrigger(String matchExpression, boolean useScmTrigger) {
