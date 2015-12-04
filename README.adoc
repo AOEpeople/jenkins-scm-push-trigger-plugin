@@ -10,7 +10,7 @@ Currently RabbitMQ is the only supported external source of notifications.
 
 == Installation
 
-Current Version: *1.1.1*
+Current Version: *1.1.2*
 
 === Prerequisits
 
