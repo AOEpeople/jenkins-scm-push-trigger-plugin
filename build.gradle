@@ -7,6 +7,7 @@ buildscript {
     }
     dependencies {
         classpath 'org.jenkins-ci.tools:gradle-jpi-plugin:0.14.0'
+        classpath 'com.netflix.nebula:nebula-release-plugin:3.1.0'
     }
 }
 
@@ -39,7 +40,10 @@ jenkinsPlugin {
 }
 
 repositories {
-    maven { url 'https://extranet.aoe.com/artifactory/remote-repos' }
+    jcenter()
+    maven {
+        url 'http://repo.jenkins-ci.org/releases/'
+    }
 }
 
 clean {
@@ -73,7 +77,7 @@ dependencies {
 gradle.taskGraph.whenReady { taskGraph ->
     PublishingExtension publishingExtension = project.extensions.getByType(PublishingExtension)
     publishingExtension.repositories.getByName('jenkins').credentials {
-        username = aoeRepoUsername
-        password = aoeRepoPassword
+        username = project.hasProperty('aoeRepoUsername') ? aoeRepoUsername : ''
+        password = project.hasProperty('aoeRepoPassword') ? aoeRepoPassword : ''
     }
 }
