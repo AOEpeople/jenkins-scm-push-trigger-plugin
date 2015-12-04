@@ -55,7 +55,8 @@ class ScmPushTrigger extends Trigger<AbstractProject<?, ?>> {
             def scms = job.scm.configuredSCMs.findAll { isGitSCM(it) }
             scms.collectNested { it.userRemoteConfigs*.url }
         } else {
-            throw new IllegalStateException("Currently only Git (optionally with MultiSCM) as SCM is supported")
+            LOGGER.warning("Currently only Git (optionally with MultiSCM) as SCM is supported")
+            []
         }
     }
 
