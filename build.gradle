@@ -13,6 +13,7 @@ buildscript {
 
 apply plugin: 'groovy'
 apply plugin: 'org.jenkins-ci.jpi'
+apply plugin: 'nebula.nebula-release'
 
 description = 'Plugin to receive SCM change notifications via RabbitMQ and triggering builds'
 group = 'com.aoe.jenkins'
@@ -81,3 +82,5 @@ gradle.taskGraph.whenReady { taskGraph ->
         password = project.hasProperty('aoeRepoPassword') ? aoeRepoPassword : ''
     }
 }
+
+tasks.release.dependsOn tasks.publish
