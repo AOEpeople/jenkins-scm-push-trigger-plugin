@@ -24,10 +24,7 @@ def generatedSourcesDir = 'generated'
 jenkinsPlugin {
     coreVersion = '1.600'
     displayName = 'SCM Push Trigger'
-    //url = ''
-    //gitHubUrl = ''
-    repoUrl = 'https://extranet.aoe.com/artifactory/libs-release-local'
-    snapshotRepoUrl = 'https://extranet.aoe.com/artifactory/libs-snapshot-local'
+    gitHubUrl = 'https://github.com/AOEpeople/jenkins-scm-push-trigger-plugin'
     fileExtension = 'jpi'
     configureRepositories = false
     localizerOutputDir = "$generatedSourcesDir/localizer"
@@ -40,12 +37,7 @@ jenkinsPlugin {
     }
 }
 
-repositories {
-    jcenter()
-    maven {
-        url 'http://repo.jenkins-ci.org/releases/'
-    }
-}
+repositories.addAll(buildscript.repositories)
 
 clean {
     delete generatedSourcesDir
@@ -73,14 +65,3 @@ dependencies {
     testCompile 'cglib:cglib-nodep:2.2.2' // used by Spock
     testCompile 'org.objenesis:objenesis:1.2' // used by Spock
 }
-
-// As long as we don't deploy to jenkins-ci.org we use our auth standards
-gradle.taskGraph.whenReady { taskGraph ->
-    PublishingExtension publishingExtension = project.extensions.getByType(PublishingExtension)
-    publishingExtension.repositories.getByName('jenkins').credentials {
-        username = project.hasProperty('aoeRepoUsername') ? aoeRepoUsername : ''
-        password = project.hasProperty('aoeRepoPassword') ? aoeRepoPassword : ''
-    }
-}
-
-tasks.release.dependsOn tasks.publish
