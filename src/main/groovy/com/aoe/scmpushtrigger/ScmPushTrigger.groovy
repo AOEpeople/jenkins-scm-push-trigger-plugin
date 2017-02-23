@@ -4,6 +4,7 @@ import hudson.Extension
 import hudson.model.AbstractProject
 import hudson.model.Cause
 import hudson.model.Item
+import hudson.model.Job
 import hudson.model.Project
 import hudson.model.listeners.ItemListener
 import hudson.scm.SCM
@@ -23,7 +24,7 @@ import java.util.logging.Logger
  *
  * @author Carsten Lenz, AOE
  */
-class ScmPushTrigger extends Trigger<AbstractProject<?, ?>> {
+class ScmPushTrigger extends Trigger<Job> {
 
     private static Logger LOGGER = Logger.getLogger(ScmPushTrigger.class.getName())
 
@@ -43,7 +44,7 @@ class ScmPushTrigger extends Trigger<AbstractProject<?, ?>> {
             if (!job) {
                 throw new IllegalStateException("Creating triggerRef before start()")
             }
-            triggerRef = new ScmPushTriggerRef(job.name, this)
+            triggerRef = new ScmPushTriggerRef(job.fullName, this)
         }
         triggerRef
     }
@@ -69,8 +70,8 @@ class ScmPushTrigger extends Trigger<AbstractProject<?, ?>> {
     }
 
     @Override
-    void start(AbstractProject<?, ?> project, boolean newInstance) {
-        super.start(project, newInstance)
+    void start(Job job, boolean newInstance) {
+        super.start(job, newInstance)
 
         PushNotificationProviderAccess.instance.addTrigger(getTriggerRef())
     }
@@ -94,6 +95,7 @@ class ScmPushTrigger extends Trigger<AbstractProject<?, ?>> {
             def trigger = job.getTrigger(SCMTrigger)
             if (trigger) {
                 trigger.run()
+                LOGGER.info("Trigger for job ${trigger.job.fullName} was started.")
                 return
             } else {
                 LOGGER.warning("No SCM Trigger found although 'Use SCM Trigger' configured. Falling back to simply scheduling a build")
@@ -166,6 +168,10 @@ class ScmPushTriggerRef {
     int hashCode() {
         return projectName.hashCode()
     }
+
+    String toString() {
+        "Project: ${projectName}; SCMUrls: ${trigger.scmUrls}"
+    }
 }
 
 
@@ -193,13 +199,12 @@ class ScmPushTriggerItemListenerImpl extends ItemListener {
 
     @Override
     void onLoaded() {
-//        def listener = MessageQueueListener.all().get(RabbitMqListener)
         def provider = PushNotificationProviderAccess.instance
         def triggers = Jenkins.getInstance().getAllItems(Project)*.getTrigger(ScmPushTrigger)
         triggers.removeAll { !it }
         triggers.each { trigger ->
             provider.addTrigger(trigger.triggerRef)
-//            listener?.addTrigger(trigger.triggerRef)
         }
     }
+
 }
