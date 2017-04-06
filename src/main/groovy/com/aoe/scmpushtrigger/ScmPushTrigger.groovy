@@ -5,6 +5,7 @@ import hudson.model.AbstractProject
 import hudson.model.Cause
 import hudson.model.Item
 import hudson.model.Job
+import hudson.model.JobProperty
 import hudson.model.Project
 import hudson.model.listeners.ItemListener
 import hudson.scm.SCM
@@ -12,7 +13,9 @@ import hudson.triggers.SCMTrigger
 import hudson.triggers.Trigger
 import hudson.triggers.TriggerDescriptor
 import hudson.util.FormValidation
+import javaposse.jobdsl.dsl.jobs.WorkflowJob
 import jenkins.model.Jenkins
+import jenkins.triggers.SCMTriggerItem
 import org.kohsuke.stapler.AncestorInPath
 import org.kohsuke.stapler.DataBoundConstructor
 import org.kohsuke.stapler.QueryParameter
@@ -50,11 +53,13 @@ class ScmPushTrigger extends Trigger<Job> {
     }
 
     public List<String> getScmUrls() {
-        if (isGitSCM(job.scm)) {
-            job.scm.userRemoteConfigs*.url
-        } else if (isMultiSCM(job.scm)) {
-            def scms = job.scm.configuredSCMs.findAll { isGitSCM(it) }
-            scms.collectNested { it.userRemoteConfigs*.url }
+        if(job.hasProperty('SCMs')) {
+            LOGGER.warning("Found SCMs ${job.SCMs}")
+            def scms = job.SCMs.findAll { isGitSCM(it) }
+            LOGGER.warning("Found GIT SCMs $scms")
+            def collectNested = scms.collectNested { it.userRemoteConfigs*.url }
+            LOGGER.warning("Found GIT SCMs nestsed ${collectNested.flatten()}")
+            collectNested.flatten()
         } else {
             LOGGER.warning("Currently only Git (optionally with MultiSCM) as SCM is supported")
             []
@@ -78,7 +83,10 @@ class ScmPushTrigger extends Trigger<Job> {
 
     @Override
     void stop() {
-        PushNotificationProviderAccess.instance.removeTrigger(getTriggerRef())
+        //while stop is called, we don't need creation of a new trigger ref
+        if (triggerRef) {
+            PushNotificationProviderAccess.instance.removeTrigger(getTriggerRef())
+        }
         super.stop()
     }
 
@@ -92,7 +100,7 @@ class ScmPushTrigger extends Trigger<Job> {
 
     void scheduleBuild(String queueName, String content) {
         if (useScmTrigger) {
-            def trigger = job.getTrigger(SCMTrigger)
+            def trigger = job.getSCMTrigger()
             if (trigger) {
                 trigger.run()
                 LOGGER.info("Trigger for job ${trigger.job.fullName} was started.")
@@ -121,7 +129,7 @@ class ScmPushTrigger extends Trigger<Job> {
         FormValidation doCheckUseScmTrigger(
                 @QueryParameter boolean value, @AncestorInPath AbstractProject project) {
 
-            if (value) {
+            if (value && project) {
                 def trigger = project.getTrigger(SCMTrigger) as SCMTrigger
                 if (!trigger) {
                     return FormValidation.warning("SCM Trigger is not activated! SCM Trigger must be " +
