@@ -94,7 +94,27 @@ class ScmPushTrigger extends Trigger<Job> {
         if (matchExpression) {
             matchExpression == content
         } else {
-            getScmUrls().contains(content)
+            def scmUrls        = getScmUrls()
+            def matchResult    = scmUrls.contains(content)
+
+            if(matchResult) {
+                matchResult
+
+            } else {
+
+                //try to compare scm urls with content, that has .git suffix removed
+                //this is for jobs with configured git-urls without .git suffix
+                //the message (content) from rabbit mq always contains .git
+                def dotGitSuffix = '.git'
+                def trimmedContent = content.trim()
+
+                if (trimmedContent.endsWith(dotGitSuffix)) {
+                    def conentWithoutDotGitSuffix = trimmedContent.substring(0, trimmedContent.length() - dotGitSuffix.length())
+                    scmUrls.contains(conentWithoutDotGitSuffix)
+                } else {
+                    false
+                }
+            }
         }
     }
 
