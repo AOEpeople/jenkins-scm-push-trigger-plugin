@@ -4,6 +4,8 @@ import hudson.Extension
 import hudson.model.AbstractProject
 import hudson.model.Cause
 import hudson.model.Item
+import hudson.model.Job
+import hudson.model.JobProperty
 import hudson.model.Project
 import hudson.model.listeners.ItemListener
 import hudson.scm.SCM
@@ -11,7 +13,9 @@ import hudson.triggers.SCMTrigger
 import hudson.triggers.Trigger
 import hudson.triggers.TriggerDescriptor
 import hudson.util.FormValidation
+import javaposse.jobdsl.dsl.jobs.WorkflowJob
 import jenkins.model.Jenkins
+import jenkins.triggers.SCMTriggerItem
 import org.kohsuke.stapler.AncestorInPath
 import org.kohsuke.stapler.DataBoundConstructor
 import org.kohsuke.stapler.QueryParameter
@@ -23,7 +27,7 @@ import java.util.logging.Logger
  *
  * @author Carsten Lenz, AOE
  */
-class ScmPushTrigger extends Trigger<AbstractProject<?, ?>> {
+class ScmPushTrigger extends Trigger<Job> {
 
     private static Logger LOGGER = Logger.getLogger(ScmPushTrigger.class.getName())
 
@@ -43,17 +47,19 @@ class ScmPushTrigger extends Trigger<AbstractProject<?, ?>> {
             if (!job) {
                 throw new IllegalStateException("Creating triggerRef before start()")
             }
-            triggerRef = new ScmPushTriggerRef(job.name, this)
+            triggerRef = new ScmPushTriggerRef(job.fullName, this)
         }
         triggerRef
     }
 
     public List<String> getScmUrls() {
-        if (isGitSCM(job.scm)) {
-            job.scm.userRemoteConfigs*.url
-        } else if (isMultiSCM(job.scm)) {
-            def scms = job.scm.configuredSCMs.findAll { isGitSCM(it) }
-            scms.collectNested { it.userRemoteConfigs*.url }
+        if(job.hasProperty('SCMs')) {
+            LOGGER.warning("Found SCMs ${job.SCMs}")
+            def scms = job.SCMs.findAll { isGitSCM(it) }
+            LOGGER.warning("Found GIT SCMs $scms")
+            def collectNested = scms.collectNested { it.userRemoteConfigs*.url }
+            LOGGER.warning("Found GIT SCMs nestsed ${collectNested.flatten()}")
+            collectNested.flatten()
         } else {
             LOGGER.warning("Currently only Git (optionally with MultiSCM) as SCM is supported")
             []
@@ -69,15 +75,18 @@ class ScmPushTrigger extends Trigger<AbstractProject<?, ?>> {
     }
 
     @Override
-    void start(AbstractProject<?, ?> project, boolean newInstance) {
-        super.start(project, newInstance)
+    void start(Job job, boolean newInstance) {
+        super.start(job, newInstance)
 
         PushNotificationProviderAccess.instance.addTrigger(getTriggerRef())
     }
 
     @Override
     void stop() {
-        PushNotificationProviderAccess.instance.removeTrigger(getTriggerRef())
+        //while stop is called, we don't need creation of a new trigger ref
+        if (triggerRef) {
+            PushNotificationProviderAccess.instance.removeTrigger(getTriggerRef())
+        }
         super.stop()
     }
 
@@ -85,15 +94,36 @@ class ScmPushTrigger extends Trigger<AbstractProject<?, ?>> {
         if (matchExpression) {
             matchExpression == content
         } else {
-            getScmUrls().contains(content)
+            def scmUrls        = getScmUrls()
+            def matchResult    = scmUrls.contains(content)
+
+            if(matchResult) {
+                matchResult
+
+            } else {
+
+                //try to compare scm urls with content, that has .git suffix removed
+                //this is for jobs with configured git-urls without .git suffix
+                //the message (content) from rabbit mq always contains .git
+                def dotGitSuffix = '.git'
+                def trimmedContent = content.trim()
+
+                if (trimmedContent.endsWith(dotGitSuffix)) {
+                    def conentWithoutDotGitSuffix = trimmedContent.substring(0, trimmedContent.length() - dotGitSuffix.length())
+                    scmUrls.contains(conentWithoutDotGitSuffix)
+                } else {
+                    false
+                }
+            }
         }
     }
 
     void scheduleBuild(String queueName, String content) {
         if (useScmTrigger) {
-            def trigger = job.getTrigger(SCMTrigger)
+            def trigger = job.getSCMTrigger()
             if (trigger) {
                 trigger.run()
+                LOGGER.info("Trigger for job ${trigger.job.fullName} was started.")
                 return
             } else {
                 LOGGER.warning("No SCM Trigger found although 'Use SCM Trigger' configured. Falling back to simply scheduling a build")
@@ -119,7 +149,7 @@ class ScmPushTrigger extends Trigger<AbstractProject<?, ?>> {
         FormValidation doCheckUseScmTrigger(
                 @QueryParameter boolean value, @AncestorInPath AbstractProject project) {
 
-            if (value) {
+            if (value && project) {
                 def trigger = project.getTrigger(SCMTrigger) as SCMTrigger
                 if (!trigger) {
                     return FormValidation.warning("SCM Trigger is not activated! SCM Trigger must be " +
@@ -166,6 +196,10 @@ class ScmPushTriggerRef {
     int hashCode() {
         return projectName.hashCode()
     }
+
+    String toString() {
+        "Project: ${projectName}; SCMUrls: ${trigger.scmUrls}"
+    }
 }
 
 
@@ -193,13 +227,12 @@ class ScmPushTriggerItemListenerImpl extends ItemListener {
 
     @Override
     void onLoaded() {
-//        def listener = MessageQueueListener.all().get(RabbitMqListener)
         def provider = PushNotificationProviderAccess.instance
         def triggers = Jenkins.getInstance().getAllItems(Project)*.getTrigger(ScmPushTrigger)
         triggers.removeAll { !it }
         triggers.each { trigger ->
             provider.addTrigger(trigger.triggerRef)
-//            listener?.addTrigger(trigger.triggerRef)
         }
     }
+
 }

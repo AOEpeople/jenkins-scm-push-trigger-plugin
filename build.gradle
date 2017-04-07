@@ -22,7 +22,7 @@ group = 'com.aoe.jenkins'
 def generatedSourcesDir = 'generated'
 
 jenkinsPlugin {
-    coreVersion = '1.600'
+    coreVersion = '2.46.1'
     displayName = 'SCM Push Trigger'
     gitHubUrl = 'https://github.com/AOEpeople/jenkins-scm-push-trigger-plugin'
     fileExtension = 'jpi'

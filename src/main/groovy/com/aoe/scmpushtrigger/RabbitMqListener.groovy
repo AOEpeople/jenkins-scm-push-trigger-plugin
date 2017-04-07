@@ -47,11 +47,26 @@ class RabbitMqListener extends MessageQueueListener implements PushNotificationP
     @Override
     void onReceive(String queueName, String contentType, Map<String, Object> headers, byte[] body) {
         def content = new String(body, 'UTF-8')
-        LOGGER.warning("Received message $content")
+        LOGGER.info("Received message '$content'")
 
-        def matchingTriggerRefs = triggerRefs.findAll { it.matches(content) }
-        def matchingTriggers = matchingTriggerRefs.collect { it.trigger }
+        def matchingTriggerRefs = matchingTriggerRefs(content)
+
+        LOGGER.info("Matched $matchingTriggerRefs (trigger references)")
+
+        if(!matchingTriggerRefs) {
+            LOGGER.info("Used refs: '$triggerRefs'")
+        }
+
+        def matchingTriggers = triggersFromTriggerRefs(matchingTriggerRefs)
 
         matchingTriggers*.scheduleBuild(queueName, content)
+    }
+
+    List<ScmPushTrigger> triggersFromTriggerRefs(HashSet<ScmPushTriggerRef> matchingTriggerRefs) {
+        matchingTriggerRefs.collect { it.trigger }
+    }
+
+    HashSet<ScmPushTriggerRef> matchingTriggerRefs(String content) {
+        triggerRefs.findAll { it.matches(content) }
     }
 }
